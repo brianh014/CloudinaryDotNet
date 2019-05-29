@@ -43,6 +43,9 @@ namespace CloudinaryDotNet.Actions
     [DataContract]
     public class SearchResource
     {
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "resource_type")]
         protected string m_resourceType;
 
@@ -52,9 +55,15 @@ namespace CloudinaryDotNet.Actions
         [DataMember(Name = "public_id")]
         public string PublicId { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "folder")]
         public string Folder { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "filename")]
         public string FileName { get; protected set; }
 
@@ -70,26 +79,41 @@ namespace CloudinaryDotNet.Actions
         [DataMember(Name = "format")]
         public string Format { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "version")]
         public string Version { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public ResourceType ResourceType
         {
             get { return Api.ParseCloudinaryParam<ResourceType>(m_resourceType); }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "type")]
         public string Type { get; protected set; }
 
-        [DataMember(Name = "created_at")]
-        public string Created { get; protected set; }
-
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "uploaded_at")]
         public string Uploaded { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "backup_bytes")]
         public int BackupBytes { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "width")]
         public int Width { get; protected set; }
 
@@ -99,33 +123,63 @@ namespace CloudinaryDotNet.Actions
         [DataMember(Name = "height")]
         public int Height { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "aspect_ratio")]
         public double AspectRatio { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "pixels")]
         public int Pixels { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "tags")]
         public string[] Tags { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "context")]
         public JToken Context { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "image_analysis")]
         public JToken ImageAnalysis { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "image_metadata")]
         public Dictionary<string, string> Metadata { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "url")]
         public string Url { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "secure_url")]
         public string SecureUrl { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "status")]
         public string Status { get; protected set; }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [DataMember(Name = "access_mode")]
         public string AccessMode { get; protected set; }
 
