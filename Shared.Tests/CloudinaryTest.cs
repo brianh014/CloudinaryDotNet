@@ -1475,6 +1475,37 @@ namespace CloudinaryDotNet.Test
         }
 
         [Test]
+        public void TestResourceFullyQualifiedPublicId()
+        {
+            // should return correct FullyQualifiedPublicId
+
+            var uploadParams = new ImageUploadParams()
+            {
+                File = new FileDescription(m_testImagePath),
+                PublicId = GetUniquePublicId(),
+                Tags = m_apiTag
+            };
+
+            m_cloudinary.Upload(uploadParams);
+
+            var listParams = new ListResourcesParams()
+            {
+                ResourceType = ResourceType.Image,
+                MaxResults = 1
+            };
+
+            var result = m_cloudinary.ListResources(listParams);
+
+            Assert.IsNotNull(result.Resources);
+            Assert.AreEqual(1, result.Resources.Length);
+
+            var res = result.Resources[0];
+            var expectedFullQualifiedPublicId = $"{res.ResourceType}/{res.Type}/{res.PublicId}";
+
+            Assert.AreEqual(expectedFullQualifiedPublicId, res.FullyQualifiedPublicId);
+        }
+
+        [Test]
         public void TestEager()
         {
             ImageUploadParams uploadParams = new ImageUploadParams()
@@ -2978,14 +3009,18 @@ namespace CloudinaryDotNet.Test
         }
 
         // For this test to work, "Auto-create folders" should be enabled in the Upload Settings, so this test is disabled by default.
+        [Test, IgnoreFeature("auto_create_folders")]
         public void TestFolderApi()
         {
             // should allow to list folders and subfolders
+            var subFolder1 = $"{m_folderPrefix}1/test_subfolder1";
+            var subFolder2 = $"{m_folderPrefix}1/test_subfolder2";
+
             var publicIds = new List<string> {
                 $"{m_folderPrefix}1/item",
                 $"{m_folderPrefix}2/item",
-                $"{m_folderPrefix}1/test_subfolder1/item",
-                $"{m_folderPrefix}1/test_subfolder2/item"
+                $"{subFolder1}/item",
+                $"{subFolder2}/item"
             };
 
             publicIds.ForEach(p => m_cloudinary.Upload(new ImageUploadParams()
@@ -2997,20 +3032,39 @@ namespace CloudinaryDotNet.Test
 
             var result = m_cloudinary.RootFolders();
             Assert.Null(result.Error);
-            Assert.AreEqual($"{m_folderPrefix}1", result.Folders[0].Name);
-            Assert.AreEqual($"{m_folderPrefix}2", result.Folders[1].Name);
+            Assert.IsTrue(result.Folders.Any(folder => folder.Name == $"{m_folderPrefix}1"));
+            Assert.IsTrue(result.Folders.Any(folder => folder.Name == $"{m_folderPrefix}2"));
+
+            // TODO: fix race here (server might be not updated at this point)
+            Thread.Sleep(2000);
 
             result = m_cloudinary.SubFolders($"{m_folderPrefix}1");
 
-            Assert.AreEqual($"{m_folderPrefix}1/test_subfolder1", result.Folders[0].Path);
-            Assert.AreEqual($"{m_folderPrefix}1/test_subfolder2", result.Folders[1].Path);
+            Assert.AreEqual(2, result.Folders.Count);
+            Assert.AreEqual(subFolder1, result.Folders[0].Path);
+            Assert.AreEqual(subFolder2, result.Folders[1].Path);
 
             result = m_cloudinary.SubFolders(m_folderPrefix);
 
             Assert.AreEqual(HttpStatusCode.NotFound, result.StatusCode);
             Assert.NotNull(result.Error);
             Assert.NotNull(result.Error.Message);
-            Assert.AreEqual("Can't find folder with path test_folder", result.Error.Message);
+            Assert.AreEqual($"Can't find folder with path {m_folderPrefix}", result.Error.Message);
+
+            var deletionRes = m_cloudinary.DeleteFolder(subFolder1);
+
+            Assert.AreEqual(HttpStatusCode.BadRequest, deletionRes.StatusCode);
+            Assert.NotNull(deletionRes.Error);
+            Assert.NotNull(deletionRes.Error.Message);
+            Assert.AreEqual("Folder is not empty", deletionRes.Error.Message);
+
+            m_cloudinary.DeleteResourcesByPrefix(subFolder1);
+
+            deletionRes = m_cloudinary.DeleteFolder(subFolder1);
+
+            Assert.Null(deletionRes.Error);
+            Assert.AreEqual(1, deletionRes.Deleted.Count);
+            Assert.AreEqual(subFolder1, deletionRes.Deleted[0]);
         }
 
         [Test]
@@ -3261,6 +3315,73 @@ namespace CloudinaryDotNet.Test
 
             Assert.AreEqual($"{parameters.TargetPublicId()}.{FILE_FORMAT_ZIP}", result.PublicId);
             Assert.AreEqual(1, result.FileCount);
+        }
+
+        [Test]
+        public void TestCreateArchiveMultipleResourceTypes()
+        {
+            var raw = ApiShared.GetCloudinaryParam(ResourceType.Raw);
+
+            var tag = GetMethodTag();
+
+            var rawUploadParams = new RawUploadParams()
+            {
+                File = new FileDescription(m_testPdfPath),
+                Tags = $"{tag},{m_apiTag}"
+            };
+
+            var upRes1 = m_cloudinary.Upload(rawUploadParams, raw);
+
+            var imageUploadParams = new ImageUploadParams()
+            {
+                File = new FileDescription(m_testImagePath),
+                Tags = $"{tag},{m_apiTag}"
+            };
+
+            var upRes2 = m_cloudinary.Upload(imageUploadParams);
+
+            var videoUploadParams = new VideoUploadParams()
+            {
+                File = new FileDescription(m_testVideoPath),
+                Tags = $"{tag},{m_apiTag}"
+            };
+
+            var upRes3 = m_cloudinary.Upload(videoUploadParams);
+
+            var fQPublicIds = new List<string>
+            {
+                upRes1.FullyQualifiedPublicId,
+                upRes2.FullyQualifiedPublicId,
+                upRes3.FullyQualifiedPublicId
+            };
+
+            var parameters = new ArchiveParams()
+                .UseOriginalFilename(true)
+                .TargetTags(new List<string> { tag, m_apiTag });
+
+            var ex = Assert.Throws<ArgumentException>(() => m_cloudinary.CreateArchive(parameters));
+
+            StringAssert.StartsWith("At least one of the following", ex.Message);
+
+            parameters.ResourceType("auto").Tags(new List<string> {"tag"});
+
+            ex = Assert.Throws<ArgumentException>(() => m_cloudinary.CreateArchive(parameters));
+
+            StringAssert.StartsWith("To create an archive with multiple types of assets", ex.Message);
+
+            parameters.ResourceType("").Tags(null).FullyQualifiedPublicIds(fQPublicIds);
+
+            ex = Assert.Throws<ArgumentException>(() => m_cloudinary.CreateArchive(parameters));
+
+            StringAssert.StartsWith("To create an archive with multiple types of assets", ex.Message);
+
+            Assert.AreEqual(fQPublicIds, parameters.FullyQualifiedPublicIds());
+
+            parameters.ResourceType("auto");
+
+            var result = m_cloudinary.CreateArchive(parameters);
+
+            Assert.AreEqual(3, result.FileCount);
         }
 
         /// <summary>

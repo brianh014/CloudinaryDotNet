@@ -15,7 +15,12 @@ namespace CloudinaryDotNet.Test
         protected string m_defaultVideoUpPath;
         protected string m_defaultImgFetchPath;
 
+        private const string TestVersion = "1234";
+        private const string TestVersionStr = "v1234";
+        private const string DefaultVersionStr = "v1";
         private const string SOURCE_MOVIE = "movie";
+        private const string TestFolder = "folder/test";
+        private const string TestImageId = "image.jpg";
 
         [OneTimeSetUp]
         public void Init()
@@ -595,13 +600,13 @@ namespace CloudinaryDotNet.Test
             Url url2 = url1.Clone().Action("go");
             transformation.Angle(14);
             layer.FontSize(20);
-            
+
             string result1 = url1.BuildUrl("test");
             string result2 = url2.BuildUrl("test");
-            
-            Assert.AreEqual(m_defaultImgUpPath + "a_14,l_text:Arial_20:Hello/test", result1, 
+
+            Assert.AreEqual(m_defaultImgUpPath + "a_14,l_text:Arial_20:Hello/test", result1,
                 "Original Url should not be affected by changes to a cloned Url");
-            Assert.AreEqual(m_defaultRootPath + "image/go/a_12,l_text:Arial_10:Hello/test", result2, 
+            Assert.AreEqual(m_defaultRootPath + "image/go/a_12,l_text:Arial_10:Hello/test", result2,
                 "Cloned Url should not be affected by changes to source Url params and layers");
         }
 
@@ -753,12 +758,12 @@ namespace CloudinaryDotNet.Test
         {
             // should add version if public_id contains /
 
-            string result = m_api.UrlImgUp.BuildUrl("folder/test");
-            Assert.AreEqual(m_defaultImgUpPath + "v1/folder/test", result);
-            result = m_api.UrlImgUp.Version("123").BuildUrl("folder/test");
-            Assert.AreEqual(m_defaultImgUpPath + "v123/folder/test", result);
-            result = m_api.UrlImgUp.BuildUrl("1/av1/test");
-            Assert.AreEqual(m_defaultImgUpPath + "v1/1/av1/test", result);
+            string result = m_api.UrlImgUp.BuildUrl(TestFolder);
+            Assert.AreEqual(m_defaultImgUpPath + $"{DefaultVersionStr}/{TestFolder}", result);
+            result = m_api.UrlImgUp.Version(TestVersion).BuildUrl(TestFolder);
+            Assert.AreEqual(m_defaultImgUpPath + $"{TestVersionStr}/{TestFolder}", result);
+            result = m_api.UrlImgUp.BuildUrl($"1/a{DefaultVersionStr}/{TestImageId}");
+            Assert.AreEqual(m_defaultImgUpPath + $"{DefaultVersionStr}/1/a{DefaultVersionStr}/{TestImageId}", result);
         }
 
         [Test]
@@ -766,8 +771,38 @@ namespace CloudinaryDotNet.Test
         {
             // should not add version if public_id contains version already
 
-            string result = m_api.UrlImgUp.BuildUrl("v1234/test");
-            Assert.AreEqual(m_defaultImgUpPath + "v1234/test", result);
+            string result = m_api.UrlImgUp.BuildUrl($"{TestVersionStr}/{TestImageId}");
+            Assert.AreEqual(m_defaultImgUpPath + $"{TestVersionStr}/{TestImageId}", result);
+        }
+
+        [Test]
+        public void TestForceVersion()
+        {
+            var api = new Api(m_api.Account);
+
+            var result = api.UrlImgUp.BuildUrl(TestFolder);
+            Assert.AreEqual($"{m_defaultImgUpPath}{DefaultVersionStr}/{TestFolder}", result);
+
+            // Should not add default version if ForceVersion is set to false
+            result = api.UrlImgUp.ForceVersion(false).BuildUrl(TestFolder);
+            Assert.AreEqual($"{m_defaultImgUpPath}{TestFolder}", result);
+
+            // Explicitly set version is always passed
+            result = api.UrlImgUp.Version(TestVersion).ForceVersion(false).BuildUrl(TestFolder);
+            Assert.AreEqual($"{m_defaultImgUpPath}{TestVersionStr}/{TestFolder}", result);
+
+            result = api.UrlImgUp.Version(TestVersion).ForceVersion(false).BuildUrl(TestImageId);
+            Assert.AreEqual($"{m_defaultImgUpPath}{TestVersionStr}/{TestImageId}", result);
+
+            // Should use ForceVersion from Api instance
+            api.ForceVersion = false;
+
+            result = api.UrlImgUp.BuildUrl(TestFolder);
+            Assert.AreEqual($"{m_defaultImgUpPath}{TestFolder}", result);
+
+            // Should override ForceVersion from Api instance
+            result = api.UrlImgUp.ForceVersion().BuildUrl(TestFolder);
+            Assert.AreEqual($"{m_defaultImgUpPath}{DefaultVersionStr}/{TestFolder}", result);
         }
 
         [Test]
