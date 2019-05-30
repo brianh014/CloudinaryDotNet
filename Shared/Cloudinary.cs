@@ -171,7 +171,7 @@ namespace CloudinaryDotNet
 
             UrlBuilder urlBuilder = new UrlBuilder(
                 m_api.ApiUrlV.
-                ResourceType(RESOURCE_TYPE_IMAGE).
+                ResourceType(parameters.ResourceType() ?? RESOURCE_TYPE_IMAGE).
                 Action(ACTION_GENERATE_ARCHIVE).
                 BuildUrl());
 
